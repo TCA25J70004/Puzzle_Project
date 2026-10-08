@@ -7,6 +7,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/CollisionProfile.h"
 #include "UObject/ConstructorHelpers.h"
+#include "GameMessageSubsystem.h"
 
 // Sets default values
 ASlidingDoubleDoor::ASlidingDoubleDoor()
@@ -91,12 +92,27 @@ void ASlidingDoubleDoor::HandleSwitchToggled(AMySwitchActor* Switch, bool bIsOn)
 
 void ASlidingDoubleDoor::SetOpen(bool bOpen)
 {
+	/*
+	* 旧版本，还没有加入开关门消息提示之前的代码
 	TargetAlpha = bOpen ? 1.f : 0.f;
 
 	if (!FMath::IsNearlyEqual(Alpha, TargetAlpha))
 	{
 		SetActorTickEnabled(true);
 	}
+	*/
+
+	const float NewTarget = bOpen ? 1.f : 0.f;
+
+	// 目标没变（比如已经在开门却又收到"开门"指令），什么都不做
+	if (FMath::IsNearlyEqual(TargetAlpha, NewTarget))
+	{
+		return;
+	}
+
+	TargetAlpha = NewTarget;
+	SetActorTickEnabled(true);
+	PostStateMessage(bOpen);
 }
 
 
@@ -126,5 +142,27 @@ void ASlidingDoubleDoor::ApplyAlpha(float InAlpha)
 
 	LeftDoor->SetRelativeLocation(LeftClosedLocation - Offset);
 	RightDoor->SetRelativeLocation(RightClosedLocation + Offset);
+}
+
+void ASlidingDoubleDoor::PostStateMessage(bool bOpen)
+{
+	UGameMessageSubsystem* MessageSubsystem = GetWorld()->GetSubsystem<UGameMessageSubsystem>();
+	if (!MessageSubsystem)
+	{
+		return;
+	}
+
+	const FText Name = DoorDisplayName.IsEmpty()
+		? FText::FromString(GetActorNameOrLabel())
+		: DoorDisplayName;
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Door"), Name);
+
+	const FText Format = bOpen
+		? NSLOCTEXT("SlidingDoor", "Opened", "{Door}が開いています")
+		: NSLOCTEXT("SlidingDoor", "Closed", "{Door}が閉まっています");
+
+	MessageSubsystem->PostMessage(FText::Format(Format, Args));
 }
 

@@ -64,5 +64,14 @@ private:
 	FDelegateHandle SwitchHandle;
 
 
+protected:
+
+	//显示在提示中的门名称，例如 门A
+	UPROPERTY(EditInstanceOnly, Category = "Door")
+	FText DoorDisplayName;
+
+
+private:
+	void PostStateMessage(bool bOpen);
 
 };
