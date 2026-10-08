@@ -77,6 +77,19 @@ protected:
 	virtual void DoJumpEnd();
 
 protected:
+	//交互输入动作
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* InteractAction;
+
+	//交互距离cm
+	UPROPERTY(EditDefaultsOnly, Category = "Interaction")
+	float InteractDistance = 300.f;
+
+	//按下交互键时调用
+	void Interact();
+
+
+protected:
 
 	/** Set up input action bindings */
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;

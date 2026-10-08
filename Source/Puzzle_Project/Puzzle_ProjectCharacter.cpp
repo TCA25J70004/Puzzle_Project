@@ -10,6 +10,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Puzzle_Project.h"
 
+#include "Interactable.h"
+#include "DrawDebugHelpers.h"
+
 APuzzle_ProjectCharacter::APuzzle_ProjectCharacter()
 {
 	// Set size for collision capsule
@@ -59,6 +62,9 @@ void APuzzle_ProjectCharacter::SetupPlayerInputComponent(UInputComponent* Player
 		// Looking/Aiming
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APuzzle_ProjectCharacter::LookInput);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APuzzle_ProjectCharacter::LookInput);
+
+		//新增，互动
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APuzzle_ProjectCharacter::Interact);
 	}
 	else
 	{
@@ -117,4 +123,47 @@ void APuzzle_ProjectCharacter::DoJumpEnd()
 {
 	// pass StopJumping to the character
 	StopJumping();
+}
+
+void APuzzle_ProjectCharacter::Interact()
+{
+	UCameraComponent* Camera = GetFirstPersonCameraComponent();
+	if (!Camera)
+	{
+		return;
+	}
+
+	// 射线从摄像机位置出发，沿视线方向延伸 InteractDistance
+	const FVector Start = Camera->GetComponentLocation();
+	const FVector End = Start + Camera->GetForwardVector() * InteractDistance;
+
+	FHitResult Hit;
+
+	// 第三个参数 this：忽略玩家自己，防止射线打到自己的胶囊体
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractTrace), false, this);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
+
+#if ENABLE_DRAW_DEBUG
+
+	// 调试用：命中画绿线，未命中画红线，持续 2 秒
+	DrawDebugLine(GetWorld(), Start, bHit ? Hit.ImpactPoint : End, bHit ? FColor::Green : FColor::Red, false, 2.f, 0, 1.f);
+
+
+#endif
+
+	if (!bHit)
+	{
+		return;
+	}
+
+	AActor* HitActor = Hit.GetActor();
+	UE_LOG(LogTemp, Log, TEXT("Interact trace hit: %s"), *GetNameSafe(HitActor));
+
+	// 问这个物体：你实现了 IInteractable 吗？
+	if (IInteractable* Interactable= Cast<IInteractable>(HitActor))
+	{
+		Interactable->Interact(this);
+	}
+
 }
