@@ -37,9 +37,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Door")
 	TObjectPtr<UStaticMeshComponent> RightDoor;
 
+	/*
 	//控制这扇门的开关，在关卡中为每个门实例单独指定
 	UPROPERTY(EditInstanceOnly, Category = "Door")
 	TObjectPtr<AMySwitchActor> LinkedSwitch;
+	*/
+
+	//控制这扇门的开关；全部处于 ON 状态时门才会打开
+	UPROPERTY(EditInstanceOnly, Category = "Door")
+	TArray<TObjectPtr<AMySwitchActor>> LinkedSwitches;
 
 	//每扇门向外滑动的距离（厘米）
 	UPROPERTY(EditAnywhere, Category = "Door", meta = (ClampMin = "0"))
@@ -61,7 +67,11 @@ private:
 	FVector LeftClosedLocation;
 	FVector RightClosedLocation;
 
-	FDelegateHandle SwitchHandle;
+	//FDelegateHandle SwitchHandle;
+
+	//是否所有关联的开关都处于 ON 状态
+	bool AreAllSwitchesOn() const;
+
 
 
 protected:

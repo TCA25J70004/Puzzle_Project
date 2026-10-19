@@ -56,6 +56,7 @@ void ASlidingDoubleDoor::BeginPlay()
 	LeftClosedLocation = LeftDoor->GetRelativeLocation();
 	RightClosedLocation = RightDoor->GetRelativeLocation();
 
+	/*
 	if (LinkedSwitch)
 	{
 		// 订阅开关的广播
@@ -71,15 +72,49 @@ void ASlidingDoubleDoor::BeginPlay()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s has no LinkedSwitch assigned."), *GetName());
 	}
+	*/
+
+	if (LinkedSwitches.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s has no LinkedSwitches assigned."), *GetName());
+	}
+
+	for (AMySwitchActor* Switch: LinkedSwitches)
+	{
+		if (Switch)
+		{
+			Switch->OnSwitchToggled.AddUObject(this, &ASlidingDoubleDoor::HandleSwitchToggled);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s has an empty slot in LinkedSwitches."), *GetName());
+		}
+	}
+
+	// 根据所有开关的初始状态，立即同步门的状态（不播放动画、不发消息）
+	Alpha = TargetAlpha = AreAllSwitchesOn() ? 1.f : 0.f;
+	ApplyAlpha(Alpha);
 	
 }
 
 void ASlidingDoubleDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	/*
 	// 取消订阅
 	if (LinkedSwitch)
 	{
 		LinkedSwitch->OnSwitchToggled.Remove(SwitchHandle);
+	}
+	*/
+
+	//一次性取消所有订阅
+	for (AMySwitchActor* Switch : LinkedSwitches)
+	{
+		if (Switch)
+		{
+			// 移除这个委托中所有绑定到 this 的函数
+			Switch->OnSwitchToggled.RemoveAll(this);
+		}
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -87,7 +122,10 @@ void ASlidingDoubleDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ASlidingDoubleDoor::HandleSwitchToggled(AMySwitchActor* Switch, bool bIsOn)
 {
-	SetOpen(bIsOn);
+	//SetOpen(bIsOn);
+
+	//任意一个开关变化时，重新判断整体条件
+	SetOpen(AreAllSwitchesOn());
 }
 
 void ASlidingDoubleDoor::SetOpen(bool bOpen)
@@ -164,5 +202,26 @@ void ASlidingDoubleDoor::PostStateMessage(bool bOpen)
 		: NSLOCTEXT("SlidingDoor", "Closed", "{Door}が閉まっています");
 
 	MessageSubsystem->PostMessage(FText::Format(Format, Args));
+}
+
+//新增，多个开关全部 ON 才开门，所需的功能
+bool ASlidingDoubleDoor::AreAllSwitchesOn() const
+{
+	// 没有关联任何开关时，门永远不会打开
+	if (LinkedSwitches.Num() == 0)
+	{
+		return false;
+	}
+
+	for (const AMySwitchActor* Switch: LinkedSwitches)
+	{
+		// 空槽位也视为"条件未满足"，避免漏填时门被意外打开
+		if (!Switch||!Switch->IsOn())
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
