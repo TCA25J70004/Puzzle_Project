@@ -13,6 +13,8 @@
 #include "Interactable.h"
 #include "DrawDebugHelpers.h"
 
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+
 APuzzle_ProjectCharacter::APuzzle_ProjectCharacter()
 {
 	// Set size for collision capsule
@@ -45,6 +47,11 @@ APuzzle_ProjectCharacter::APuzzle_ProjectCharacter()
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 	GetCharacterMovement()->AirControl = 0.5f;
+
+	// 角色需要每帧更新物体的目标位置
+	PrimaryActorTick.bCanEverTick = true;
+
+	PhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("PhysicsHandle"));
 }
 
 void APuzzle_ProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -65,6 +72,7 @@ void APuzzle_ProjectCharacter::SetupPlayerInputComponent(UInputComponent* Player
 
 		//新增，互动
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APuzzle_ProjectCharacter::Interact);
+
 	}
 	else
 	{
@@ -125,8 +133,24 @@ void APuzzle_ProjectCharacter::DoJumpEnd()
 	StopJumping();
 }
 
+bool APuzzle_ProjectCharacter::TraceFromCamera(float Distance, FHitResult& OutHit) const
+{
+	const UCameraComponent* Camera = GetFirstPersonCameraComponent();
+	if (!Camera)
+	{
+		return false;
+	}
+
+	const FVector Start = Camera->GetComponentLocation();
+	const FVector End = Start + Camera->GetForwardVector() * Distance;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(CameraTrace), false, this);
+	return GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECC_Visibility, Params);
+}
+
 void APuzzle_ProjectCharacter::Interact()
 {
+	/*
 	UCameraComponent* Camera = GetFirstPersonCameraComponent();
 	if (!Camera)
 	{
@@ -165,5 +189,100 @@ void APuzzle_ProjectCharacter::Interact()
 	{
 		Interactable->Interact(this);
 	}
+	*/
 
+	// 1. 手里有东西 → 放下
+	if (PhysicsHandle->GetGrabbedComponent())
+	{
+		ReleaseGrabbed();
+		return;
+	}
+
+	FHitResult Hit;
+	if (!TraceFromCamera(InteractDistance, Hit))
+	{
+		return;
+	}
+
+	// 2. 可交互物体 → 交互
+	if (IInteractable* Interactable = Cast<IInteractable>(Hit.GetActor()))
+	{
+		Interactable->Interact(this);
+		return;
+	}
+
+	// 3. 物理物体 → 拾起
+	TryGrabComponent(Hit.GetComponent());
+
+}
+
+
+bool APuzzle_ProjectCharacter::TryGrabComponent(UPrimitiveComponent* Component)
+{
+	if (!Component || !Component->IsSimulatingPhysics())
+	{
+		return false;
+	}
+
+	if (Component->GetMass() > MaxGrabMass)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s is too heavy (%.1f kg)."), *GetNameSafe(Component->GetOwner()), Component->GetMass());
+		return false;
+	}
+
+	HeldRelativeRotation = GetViewYawQuat().Inverse() * Component->GetComponentQuat();
+	bHoldSettled = false;
+
+	PhysicsHandle->GrabComponentAtLocationWithRotation(
+		Component,
+		NAME_None,
+		Component->GetComponentLocation(),
+		Component->GetComponentRotation());
+
+	return true;
+}
+
+void APuzzle_ProjectCharacter::ReleaseGrabbed()
+{
+	PhysicsHandle->ReleaseComponent();
+}
+
+FVector APuzzle_ProjectCharacter::GetHoldLocation() const
+{
+	const UCameraComponent* Camera = GetFirstPersonCameraComponent();
+	return Camera->GetComponentLocation() + Camera->GetForwardVector() * HoldDistance;
+}
+
+FQuat APuzzle_ProjectCharacter::GetViewYawQuat() const
+{
+	// 只取水平方向的旋转（Yaw），忽略抬头和低头（Pitch）
+	return FRotator(0.f, GetControlRotation().Yaw, 0.f).Quaternion();
+}
+
+void APuzzle_ProjectCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UPrimitiveComponent* Held = PhysicsHandle->GetGrabbedComponent();
+	if (!Held)
+	{
+		return;
+	}
+
+	const FVector HoldLocation = GetHoldLocation();
+	const float Distance = FVector::Dist(Held->GetComponentLocation(), HoldLocation);
+
+	if (Distance < BreakDistance)
+	{
+		bHoldSettled = true;
+	}
+	else if (bHoldSettled)
+	{
+		// 物体曾经到达过手中，现在却被拉开了很远，说明被墙之类的东西卡住了
+		ReleaseGrabbed();
+		return;
+	}
+
+	const FQuat TargetRotation = GetViewYawQuat() * HeldRelativeRotation;
+	PhysicsHandle->SetTargetLocationAndRotation(HoldLocation, TargetRotation.Rotator());
 }

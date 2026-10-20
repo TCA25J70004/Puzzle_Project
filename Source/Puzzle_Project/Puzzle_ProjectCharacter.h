@@ -13,6 +13,8 @@ class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
 
+class UPhysicsHandleComponent;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 /**
@@ -90,6 +92,11 @@ protected:
 
 
 protected:
+	/** 从摄像机沿视线方向发射射线 */
+	bool TraceFromCamera(float Distance, FHitResult& OutHit) const;
+
+
+protected:
 
 	/** Set up input action bindings */
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
@@ -102,6 +109,41 @@ public:
 
 	/** Returns first person camera component **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+
+
+public:
+	virtual void Tick(float DeltaSeconds) override;
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "Grab")
+	TObjectPtr<UPhysicsHandleComponent> PhysicsHandle;
+
+
+	/** 拿在手中时，物体中心距离摄像机多远 */
+	UPROPERTY(EditDefaultsOnly, Category = "Grab")
+	float HoldDistance = 200.f;
+
+	/** 能拾取的最大质量（kg） */
+	UPROPERTY(EditDefaultsOnly, Category = "Grab")
+	float MaxGrabMass = 50.f;
+
+	/** 物体被卡住、离目标点超过这个距离时自动脱手 */
+	UPROPERTY(EditDefaultsOnly, Category = "Grab")
+	float BreakDistance = 150.f;
+
+	/** 尝试拾取指定组件，成功则返回 true */
+	bool TryGrabComponent(UPrimitiveComponent* Component);
+	void ReleaseGrabbed();
+
+	FVector GetHoldLocation() const;
+	FQuat GetViewYawQuat() const;
+
+private:
+	/** 拾起时，物体相对于玩家水平朝向的旋转 */
+	FQuat HeldRelativeRotation = FQuat::Identity;
+
+	/** 物体是否已经到达过手中的位置 */
+	bool bHoldSettled = false;
 
 };
 
