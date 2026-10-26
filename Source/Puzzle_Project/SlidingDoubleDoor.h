@@ -6,7 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "SlidingDoubleDoor.generated.h"
 
-class AMySwitchActor;
+//class AMySwitchActor;
+class ASwitchBase;
 class UStaticMeshComponent;
 
 UCLASS()
@@ -45,7 +46,8 @@ protected:
 
 	//控制这扇门的开关；全部处于 ON 状态时门才会打开
 	UPROPERTY(EditInstanceOnly, Category = "Door")
-	TArray<TObjectPtr<AMySwitchActor>> LinkedSwitches;
+	//TArray<TObjectPtr<AMySwitchActor>> LinkedSwitches;
+	TArray<TObjectPtr<ASwitchBase>> LinkedSwitches;
 
 	//每扇门向外滑动的距离（厘米）
 	UPROPERTY(EditAnywhere, Category = "Door", meta = (ClampMin = "0"))
@@ -56,7 +58,8 @@ protected:
 	float OpenDuration = 1.0f;
 
 private:
-	void HandleSwitchToggled(AMySwitchActor* Switch, bool bIsOn);
+	//void HandleSwitchToggled(AMySwitchActor* Switch, bool bIsOn);
+	void HandleSwitchToggled(ASwitchBase* Switch, bool bIsOn);
 
 	//根据 Alpha 摆放两扇门板
 	void ApplyAlpha(float InAlpha);

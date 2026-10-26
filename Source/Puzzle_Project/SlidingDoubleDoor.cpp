@@ -2,7 +2,8 @@
 
 
 #include "SlidingDoubleDoor.h"
-#include "MySwitchActor.h"
+//#include "MySwitchActor.h"
+#include "SwitchBase.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/CollisionProfile.h"
@@ -79,7 +80,7 @@ void ASlidingDoubleDoor::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("%s has no LinkedSwitches assigned."), *GetName());
 	}
 
-	for (AMySwitchActor* Switch: LinkedSwitches)
+	for (ASwitchBase* Switch: LinkedSwitches)
 	{
 		if (Switch)
 		{
@@ -108,7 +109,7 @@ void ASlidingDoubleDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	*/
 
 	//一次性取消所有订阅
-	for (AMySwitchActor* Switch : LinkedSwitches)
+	for (ASwitchBase* Switch : LinkedSwitches)
 	{
 		if (Switch)
 		{
@@ -120,7 +121,7 @@ void ASlidingDoubleDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ASlidingDoubleDoor::HandleSwitchToggled(AMySwitchActor* Switch, bool bIsOn)
+void ASlidingDoubleDoor::HandleSwitchToggled(ASwitchBase* Switch, bool bIsOn)
 {
 	//SetOpen(bIsOn);
 
@@ -213,7 +214,7 @@ bool ASlidingDoubleDoor::AreAllSwitchesOn() const
 		return false;
 	}
 
-	for (const AMySwitchActor* Switch: LinkedSwitches)
+	for (const ASwitchBase* Switch: LinkedSwitches)
 	{
 		// 空槽位也视为"条件未满足"，避免漏填时门被意外打开
 		if (!Switch||!Switch->IsOn())

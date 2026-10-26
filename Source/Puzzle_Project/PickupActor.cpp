@@ -31,6 +31,9 @@ APickupActor::APickupActor()
 	Mesh->SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
 	Mesh->SetSimulatePhysics(true);
 
+	//新增，让可拾取物体产生重叠事件
+	Mesh->SetGenerateOverlapEvents(true);
+
 	// 默认质量 10kg，可以在每个实例的 Details → Physics → Mass (kg) 中单独修改
 	Mesh->SetMassOverrideInKg(NAME_None, 10.f, true);
 

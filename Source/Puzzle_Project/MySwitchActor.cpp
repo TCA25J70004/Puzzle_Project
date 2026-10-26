@@ -43,14 +43,18 @@ void AMySwitchActor::BeginPlay()
 	
 }
 
-// Called every frame
+// 开关只在被点击时才工作，构造函数里也设置了 PrimaryActorTick.bCanEverTick = false
+// 所以根本不需要 Tick。
+/*
 void AMySwitchActor::Tick(float DeltaTime)
 {
 
 }
+*/
 
 void AMySwitchActor::Interact(AActor* Interactor)
 {
+	/*
 	bIsOn = !bIsOn;
 	UpdateVisual();
 
@@ -60,7 +64,12 @@ void AMySwitchActor::Interact(AActor* Interactor)
 
 	// 通知所有订阅者；没人订阅时调用也是安全的
 	OnSwitchToggled.Broadcast(this, bIsOn);
-		
+	*/
+
+	UE_LOG(LogTemp, Log, TEXT("%s toggled by %s"), *GetName(), *GetNameSafe(Interactor));
+
+	// 只需要说明"想变成什么状态"，广播交给父类处理
+	SetIsOn(!bIsOn);
 
 }
 
@@ -71,6 +80,11 @@ void AMySwitchActor::UpdateVisual()
 	{
 		SwitchMesh->SetMaterial(0, Mat);
 	}
+}
+
+void AMySwitchActor::OnStateChanged()
+{
+	UpdateVisual();
 }
 
 
