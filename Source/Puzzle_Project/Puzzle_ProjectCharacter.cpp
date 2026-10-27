@@ -263,6 +263,8 @@ void APuzzle_ProjectCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	UpdateFocus();   // 新增
+
 	UPrimitiveComponent* Held = PhysicsHandle->GetGrabbedComponent();
 	if (!Held)
 	{
@@ -285,4 +287,38 @@ void APuzzle_ProjectCharacter::Tick(float DeltaSeconds)
 
 	const FQuat TargetRotation = GetViewYawQuat() * HeldRelativeRotation;
 	PhysicsHandle->SetTargetLocationAndRotation(HoldLocation, TargetRotation.Rotator());
+}
+
+void APuzzle_ProjectCharacter::UpdateFocus()
+{
+	FocusPrompt = FText::GetEmpty();
+
+	// 手里拿着东西时，E 的含义是"放下"，此时不显示其他提示
+	if (PhysicsHandle->GetGrabbedComponent())
+	{
+		return;
+	}
+
+	FHitResult Hit;
+	if (!TraceFromCamera(InteractDistance, Hit))
+	{
+		return;
+	}
+
+	// 和 Interact() 中的判断顺序保持一致：可交互物体优先，其次是可拾取物体
+	if (const IInteractable* Interactable = Cast<IInteractable>(Hit.GetActor()))
+	{
+		FocusPrompt = Interactable->GetInteractPrompt();
+	}
+	else if (const UPrimitiveComponent* Component = Hit.GetComponent();
+		Component && Component->IsSimulatingPhysics() && Component->GetMass() <= MaxGrabMass)
+	{
+		FocusPrompt = NSLOCTEXT("Character", "GrabPrompt", "[E] 拾う");
+	}
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Yellow,
+			FString::Printf(TEXT("[Focus] Prompt = \"%s\""), *FocusPrompt.ToString()));
+	}
 }

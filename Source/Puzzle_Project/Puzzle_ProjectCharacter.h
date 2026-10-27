@@ -145,5 +145,14 @@ private:
 	/** 物体是否已经到达过手中的位置 */
 	bool bHoldSettled = false;
 
+public:
+		//当前对准物体的提示文字，供 HUD 显示
+		const FText& GetFocusPrompt() const { return FocusPrompt; }
+
+private:
+	void UpdateFocus();
+
+	FText FocusPrompt;
+
 };
 

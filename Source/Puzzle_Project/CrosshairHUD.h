@@ -7,6 +7,7 @@
 #include "CrosshairHUD.generated.h"
 
 class UFont;
+class UInputAction;
 
 /**
  * 
@@ -75,5 +76,48 @@ private:
 
 	void HandleGameMessage(const FText& Message);
 	void DrawMessages();
+
+
+public:
+	void OpenDocument(const FText& Title, const FText& Body);
+	void CloseDocument();
+	bool IsDocumentOpen() const { return bDocumentOpen; }
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Document")
+	TObjectPtr<UInputAction> CloseDocumentAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Document")
+	FLinearColor OverlayColor = FLinearColor(0.f, 0.f, 0.f, 0.8f);
+
+	/** 正文区域占屏幕宽度的比例 */
+	UPROPERTY(EditDefaultsOnly, Category = "Document")
+	float DocumentWidthRatio = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Document")
+	float DocumentTitleScale = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Document")
+	float DocumentBodyScale = 1.3f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Prompt")
+	float PromptScale = 1.0f;
+
+private:
+	void DrawInteractPrompt();
+	void DrawDocument();
+
+	/** 把文字按指定宽度拆分成多行 */
+	void WrapText(const FString& Text, const UFont* Font, float Scale, float MaxWidth, TArray<FString>& OutLines) const;
+
+	UFont* GetUIFont() const;
+
+	bool bDocumentOpen = false;
+	FText DocumentTitle;
+	FText DocumentBody;
+
+	// 换行结果的缓存
+	TArray<FString> WrappedLines;
+	FVector2D WrapCacheKey = FVector2D::ZeroVector;
 
 };

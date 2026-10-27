@@ -16,9 +16,7 @@ class UInteractable : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- * 
- */
+
 class PUZZLE_PROJECT_API IInteractable
 {
 	GENERATED_BODY()
@@ -27,5 +25,7 @@ class PUZZLE_PROJECT_API IInteractable
 public:
 	virtual void Interact(AActor* Interactor) = 0;
 
+	//对准时显示的提示文字；返回空文本表示不显示提示
+	virtual FText GetInteractPrompt() const { return FText::GetEmpty(); }
 
 };
