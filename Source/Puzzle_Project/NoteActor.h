@@ -19,7 +19,9 @@ public:
 	ANoteActor();
 
 	virtual void Interact(AActor* Interactor) override;
-	virtual FText GetInteractPrompt() const override { return InteractPrompt; }
+	//virtual FText GetInteractPrompt() const override { return InteractPrompt; }
+	virtual FText GetInteractPrompt() const override;   // 实现移到cpp了
+
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Note")
@@ -34,5 +36,17 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Note")
 	FText InteractPrompt;
+
+	//新增，旗标系统所需
+	//读过之后显示的提示
+	UPROPERTY(EditAnywhere, Category = "Note")
+	FText ReadAgainPrompt;
+
+	//"已读"旗标名，例如 "Stage1.Note.C"；留空则不记录 */
+	UPROPERTY(EditInstanceOnly, Category = "Note|Flag")
+	FName ReadFlagId;
+
+private:
+	bool HasBeenRead()const;
 
 };

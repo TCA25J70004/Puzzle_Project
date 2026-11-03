@@ -24,6 +24,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnStateChanged() override;
 
+	virtual bool ShouldRestoreFromFlag() const override { return false; }   // 新增，旗标系统所需
+
 	UPROPERTY(VisibleAnywhere, Category = "Pressure Plate")
 	TObjectPtr<USceneComponent> PlateRoot;
 

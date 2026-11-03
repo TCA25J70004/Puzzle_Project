@@ -10,6 +10,9 @@
 #include "UObject/ConstructorHelpers.h"
 #include "GameMessageSubsystem.h"
 
+#include "FlagSubsystem.h"
+#include "Engine/GameInstance.h"
+
 // Sets default values
 ASlidingDoubleDoor::ASlidingDoubleDoor()
 {
@@ -152,6 +155,12 @@ void ASlidingDoubleDoor::SetOpen(bool bOpen)
 	TargetAlpha = NewTarget;
 	SetActorTickEnabled(true);
 	PostStateMessage(bOpen);
+
+	//新增，旗标系统所需
+	if (UFlagSubsystem* FlagSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UFlagSubsystem>() : nullptr)
+	{
+		FlagSubsystem->SetFlag(FlagId, bOpen);
+	}
 }
 
 

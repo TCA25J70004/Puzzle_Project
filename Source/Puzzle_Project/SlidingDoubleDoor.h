@@ -87,4 +87,8 @@ protected:
 private:
 	void PostStateMessage(bool bOpen);
 
+protected:
+	UPROPERTY(EditInstanceOnly, Category = "Door") //新增，旗标系统所需
+	FName FlagId;
+
 };

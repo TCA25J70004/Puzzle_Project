@@ -10,6 +10,9 @@
 #include "GameFramework/PlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 
+#include "FlagSubsystem.h"
+#include "Engine/GameInstance.h"
+
 // Sets default values
 ANoteActor::ANoteActor()
 {
@@ -29,7 +32,27 @@ ANoteActor::ANoteActor()
 	Mesh->SetRelativeScale3D(FVector(0.3f, 0.21f, 0.01f));
 
 	InteractPrompt = NSLOCTEXT("Note", "Prompt", "[E] 見る");
+
+	//新增，旗标系统所需
+	ReadAgainPrompt = NSLOCTEXT("Note", "ReadAgainPrompt", "[E] もう一度見る");
 }
+
+//新增函数，旗标系统所需
+bool ANoteActor::HasBeenRead() const
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	const UFlagSubsystem* FlagSubsystem = GameInstance ? GameInstance->GetSubsystem<UFlagSubsystem>() : nullptr;
+
+	// ReadFlagId 为空时，GetFlag 会返回默认值 false
+	return FlagSubsystem && FlagSubsystem->GetFlag(ReadFlagId);
+}
+
+//新增函数，旗标系统所需
+FText ANoteActor::GetInteractPrompt() const
+{
+	return HasBeenRead() ? ReadAgainPrompt : InteractPrompt;
+}
+
 
 void ANoteActor::Interact(AActor* Interactor)
 {
@@ -40,5 +63,16 @@ void ANoteActor::Interact(AActor* Interactor)
 	if (ACrosshairHUD* HUD = PC ? PC->GetHUD<ACrosshairHUD>() : nullptr)
 	{
 		HUD->OpenDocument(Title, Body);
+
+
+		// 记录这本日记已经读过
+		if (UFlagSubsystem* FlagSubsystem = GetGameInstance()->GetSubsystem<UFlagSubsystem>())
+		{
+			FlagSubsystem->SetFlag(ReadFlagId, true);
+		}
 	}
+
+
 }
+
+
