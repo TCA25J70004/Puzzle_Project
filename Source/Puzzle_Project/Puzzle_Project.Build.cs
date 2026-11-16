@@ -18,7 +18,8 @@ public class Puzzle_Project : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+            "Slate",       // ← 新增
+			"SlateCore"    // ← 新增，FReply、FGeometry 等在这里
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

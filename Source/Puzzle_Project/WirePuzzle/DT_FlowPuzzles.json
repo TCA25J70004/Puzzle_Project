@@ -1,0 +1,73 @@
+[
+	{
+		"Name": "Level_01",
+		"GridSize": 6,
+		"Pairs": [
+			{
+				"Color": "Green",
+				"PointA":
+				{
+					"X": 0,
+					"Y": 0
+				},
+				"PointB":
+				{
+					"X": 3,
+					"Y": 5
+				}
+			},
+			{
+				"Color": "Orange",
+				"PointA":
+				{
+					"X": 3,
+					"Y": 0
+				},
+				"PointB":
+				{
+					"X": 5,
+					"Y": 0
+				}
+			},
+			{
+				"Color": "Red",
+				"PointA":
+				{
+					"X": 1,
+					"Y": 4
+				},
+				"PointB":
+				{
+					"X": 3,
+					"Y": 3
+				}
+			},
+			{
+				"Color": "Blue",
+				"PointA":
+				{
+					"X": 1,
+					"Y": 2
+				},
+				"PointB":
+				{
+					"X": 3,
+					"Y": 4
+				}
+			},
+			{
+				"Color": "Yellow",
+				"PointA":
+				{
+					"X": 1,
+					"Y": 1
+				},
+				"PointB":
+				{
+					"X": 2,
+					"Y": 4
+				}
+			}
+		]
+	}
+]
