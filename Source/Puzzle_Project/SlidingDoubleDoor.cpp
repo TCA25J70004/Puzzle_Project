@@ -13,6 +13,10 @@
 #include "FlagSubsystem.h"
 #include "Engine/GameInstance.h"
 
+#include "Camera/CameraActor.h"                 //新增，开门演出所需
+#include "CameraCutSubsystem.h"
+#include "TimerManager.h"
+
 // Sets default values
 ASlidingDoubleDoor::ASlidingDoubleDoor()
 {
@@ -83,7 +87,7 @@ void ASlidingDoubleDoor::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("%s has no LinkedSwitches assigned."), *GetName());
 	}
 
-	for (ASwitchBase* Switch: LinkedSwitches)
+	for (ASwitchBase* Switch : LinkedSwitches)
 	{
 		if (Switch)
 		{
@@ -98,7 +102,13 @@ void ASlidingDoubleDoor::BeginPlay()
 	// 根据所有开关的初始状态，立即同步门的状态（不播放动画、不发消息）
 	Alpha = TargetAlpha = AreAllSwitchesOn() ? 1.f : 0.f;
 	ApplyAlpha(Alpha);
-	
+
+	// 新增：开局就已经是打开状态的门，视为"已经开过"，之后不再播放演出
+	if (Alpha >= 1.f)
+	{
+		bHasPlayedCutscene = true;
+	}
+
 }
 
 void ASlidingDoubleDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -110,6 +120,9 @@ void ASlidingDoubleDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		LinkedSwitch->OnSwitchToggled.Remove(SwitchHandle);
 	}
 	*/
+
+	// 新增：万一在演出中途结束（切关卡等），把镜头和输入还给玩家
+	EndOpenCutscene();
 
 	//一次性取消所有订阅
 	for (ASwitchBase* Switch : LinkedSwitches)
@@ -156,6 +169,16 @@ void ASlidingDoubleDoor::SetOpen(bool bOpen)
 	SetActorTickEnabled(true);
 	PostStateMessage(bOpen);
 
+	// 新增：开门演出
+	if (bOpen)
+	{
+		StartOpenCutscene();     // 内部会判断是否第一次
+	}
+	else
+	{
+		EndOpenCutscene();       // 保险：演出中途门被关上，立即切回玩家
+	}
+
 	//新增，旗标系统所需
 	if (UFlagSubsystem* FlagSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UFlagSubsystem>() : nullptr)
 	{
@@ -178,6 +201,12 @@ void ASlidingDoubleDoor::Tick(float DeltaTime)
 	if (FMath::IsNearlyEqual(Alpha, TargetAlpha))
 	{
 		SetActorTickEnabled(false);
+
+		// 新增：如果到达的是"完全打开"，通知演出结束
+		if (TargetAlpha >= 1.f)
+		{
+			OnDoorFullyOpened();
+		}
 	}
 
 }
@@ -223,10 +252,10 @@ bool ASlidingDoubleDoor::AreAllSwitchesOn() const
 		return false;
 	}
 
-	for (const ASwitchBase* Switch: LinkedSwitches)
+	for (const ASwitchBase* Switch : LinkedSwitches)
 	{
 		// 空槽位也视为"条件未满足"，避免漏填时门被意外打开
-		if (!Switch||!Switch->IsOn())
+		if (!Switch || !Switch->IsOn())
 		{
 			return false;
 		}
@@ -235,3 +264,70 @@ bool ASlidingDoubleDoor::AreAllSwitchesOn() const
 	return true;
 }
 
+
+// ===== 新增：首次开门演出 =====
+
+void ASlidingDoubleDoor::StartOpenCutscene()
+{
+	// 只在第一次开门时播放；没指定摄像机的门直接跳过
+	if (!bPlayCutsceneOnFirstOpen || bHasPlayedCutscene || bIsPlayingCutscene || !CutsceneCamera)
+	{
+		return;
+	}
+
+	UCameraCutSubsystem* CameraCut = GetWorld()->GetSubsystem<UCameraCutSubsystem>();
+	if (!CameraCut)
+	{
+		return;
+	}
+
+	// 切镜头、禁用输入都交给子系统；Duration 传 0 = 由门自己决定何时结束
+	if (CameraCut->StartCameraCut(CutsceneCamera, this, 0.f))
+	{
+		bHasPlayedCutscene = true;
+		bIsPlayingCutscene = true;
+	}
+}
+
+void ASlidingDoubleDoor::EndOpenCutscene()
+{
+	if (!bIsPlayingCutscene)
+	{
+		return;
+	}
+	bIsPlayingCutscene = false;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(CutsceneTimerHandle);
+	}
+
+	// 如果镜头已经被别的演出接管，子系统会忽略这次结束请求
+	if (UWorld* World = GetWorld())
+	{
+		if (UCameraCutSubsystem* CameraCut = World->GetSubsystem<UCameraCutSubsystem>())
+		{
+			CameraCut->EndCameraCut(this);
+		}
+	}
+}
+
+void ASlidingDoubleDoor::OnDoorFullyOpened()
+{
+	if (!bIsPlayingCutscene)
+	{
+		return;
+	}
+
+	if (CutsceneHoldTime > 0.f)
+	{
+		// 停留一会儿再切回
+		GetWorldTimerManager().SetTimer(
+			CutsceneTimerHandle, this, &ASlidingDoubleDoor::EndOpenCutscene,
+			CutsceneHoldTime, false);
+	}
+	else
+	{
+		EndOpenCutscene();
+	}
+}

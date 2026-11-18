@@ -10,6 +10,8 @@
 class ASwitchBase;
 class UStaticMeshComponent;
 
+class ACameraActor; //摄像机演出功能新增
+
 UCLASS()
 class PUZZLE_PROJECT_API ASlidingDoubleDoor : public AActor
 {
@@ -90,5 +92,35 @@ private:
 protected:
 	UPROPERTY(EditInstanceOnly, Category = "Door") //新增，旗标系统所需
 	FName FlagId;
+
+
+// 新增：首次开门演出
+protected:
+	//开门演出用的摄像机；在关卡中为每个门实例单独指定，不指定则不播放演出
+	UPROPERTY(EditInstanceOnly, Category = "Door|Cutscene")
+	TObjectPtr<ACameraActor> CutsceneCamera;
+
+	//是否启用首次开门演出
+	UPROPERTY(EditAnywhere, Category = "Door|Cutscene")
+	bool bPlayCutsceneOnFirstOpen = true;
+
+	//门完全打开后，镜头再停留多少秒才切回玩家（0 = 立刻切回）
+	UPROPERTY(EditAnywhere, Category = "Door|Cutscene", meta = (ClampMin = "0.0"))
+	float CutsceneHoldTime = 0.f;
+
+	//这扇门的演出是否已经播放过（运行时可在 Details 中查看，方便调试）
+	UPROPERTY(VisibleInstanceOnly, Category = "Door|Cutscene")
+	bool bHasPlayedCutscene = false;
+
+private:
+	//镜头切到门那边
+	void StartOpenCutscene();
+	//镜头切回玩家
+	void EndOpenCutscene();
+	//门完全打开的那一刻调用
+	void OnDoorFullyOpened();
+
+	bool bIsPlayingCutscene = false;
+	FTimerHandle CutsceneTimerHandle;
 
 };
